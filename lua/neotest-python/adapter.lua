@@ -1,7 +1,7 @@
 local nio = require("nio")
 local lib = require("neotest.lib")
-local pytest = require("plugins.neotest-python-local.lua.neotest-python.pytest")
-local base = require("plugins.neotest-python-local.lua.neotest-python.base")
+local pytest = require("neotest-python.pytest")
+local base = require("neotest-python.base")
 
 ---@class neotest-python._AdapterConfig
 ---@field dap_args? table
@@ -39,7 +39,6 @@ return function(config)
 
     table.insert(script_args, "--")
 
-    -- Handle case where position might be nil for full project runs
     if position then
       vim.list_extend(script_args, config.get_args(runner, position, run_args.strategy))
     else
@@ -53,7 +52,6 @@ return function(config)
 
     if position and position.id then
       local test_path = position.id
-      -- Translate host path to container path for Docker
       if docker_config then
         test_path = base.translate_path_to_container(position.id, docker_config)
       end
@@ -105,20 +103,16 @@ return function(config)
       local python_command = config.get_python_command(root)
       local runner = config.get_runner(python_command)
 
-      -- Handle Docker paths and script location
       local results_path, stream_path, script_path, container_results_path, container_stream_path
       if config.docker then
-        -- Create temp files on host for streaming
         results_path = nio.fn.tempname()
         stream_path = nio.fn.tempname()
         script_path = base.copy_script_to_container(config.docker)
 
-        -- Create container paths that will be passed to the script
         local unique_id = tostring(math.random(1000000, 9999999))
         container_results_path = "/tmp/neotest_results_" .. unique_id
         container_stream_path = "/tmp/neotest_stream_" .. unique_id
 
-        -- Create empty files on host for streaming
         lib.files.write(stream_path, "")
         lib.files.write(results_path, "{}")
       else
@@ -151,7 +145,6 @@ return function(config)
         },
         stream = function()
           return function()
-            -- For Docker, copy stream file from container to host before reading
             if config.docker and config.docker.container then
               local copy_stream_cmd = {
                 "docker", "cp",
@@ -191,7 +184,6 @@ return function(config)
       local data = "{}"
 
       if spec.context.docker then
-        -- Copy results from container to host file
         if spec.context.docker.container then
           local copy_cmd = {
             "docker", "cp",
@@ -219,19 +211,15 @@ return function(config)
         results = parsed_results
       end
 
-      -- Translate container paths back to host paths for Docker
       if spec.context.docker then
         local translated_results = {}
         for test_id, test_result in pairs(results) do
-          -- Translate the test ID (path) from container to host
           local host_test_id = base.translate_path_to_host(test_id, spec.context.docker)
 
-          -- Translate output_path if it exists
           if test_result.output_path then
             test_result.output_path = base.translate_path_to_host(test_result.output_path, spec.context.docker)
           end
 
-          -- Use the translated test ID as the key
           translated_results[host_test_id] = test_result
         end
         results = translated_results

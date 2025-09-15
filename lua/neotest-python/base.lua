@@ -98,13 +98,6 @@ end
 
 ---@return string
 function M.get_script_path()
-  -- First check our local neotest-python copy
-  local local_script = vim.fn.stdpath("config") .. "/lua/plugins/neotest-python-local/neotest.py"
-  if vim.fn.filereadable(local_script) == 1 then
-    return local_script
-  end
-
-  -- Fallback to runtime file search
   local paths = vim.api.nvim_get_runtime_file("neotest.py", true)
   for _, path in ipairs(paths) do
     if vim.endswith(path, ("neotest-python%sneotest.py"):format(lib.files.sep)) then
@@ -190,7 +183,6 @@ function M.create_dap_config(python_path, script_path, script_args, dap_args)
   }, dap_args or {})
 end
 
--- Docker support functions
 function M.get_docker_python_command(root, docker_config)
   root = root or vim.loop.cwd()
 
@@ -264,7 +256,6 @@ function M.copy_script_to_container(docker_config)
   local container_script_path = "/tmp/neotest.py"
   local container_dir_path = "/tmp/neotest_python"
 
-  -- Copy the script file
   local copy_cmd = {
     "docker", "cp", script_path,
     docker_config.container .. ":" .. container_script_path
@@ -278,7 +269,6 @@ function M.copy_script_to_container(docker_config)
     return script_path
   end
 
-  -- Copy the neotest_python directory
   local copy_dir_cmd = {
     "docker", "cp", script_dir .. "/neotest_python",
     docker_config.container .. ":" .. container_dir_path

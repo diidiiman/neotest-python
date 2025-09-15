@@ -1,5 +1,5 @@
-local base = require("plugins.neotest-python-local.lua.neotest-python.base")
-local create_adapter = require("plugins.neotest-python-local.lua.neotest-python.adapter")
+local base = require("neotest-python.base")
+local create_adapter = require("neotest-python.adapter")
 
 ---@class neotest-python.DockerConfig
 ---@field container? string Container name or ID
@@ -43,7 +43,6 @@ local augment_config = function(config)
     end
   end
 
-  -- Handle Docker configuration
   if config.docker then
     get_python_command = function(root)
       return base.get_docker_python_command(root, config.docker)
