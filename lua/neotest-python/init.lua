@@ -1,5 +1,12 @@
-local base = require("neotest-python.base")
-local create_adapter = require("neotest-python.adapter")
+local base = require("plugins.neotest-python-local.lua.neotest-python.base")
+local create_adapter = require("plugins.neotest-python-local.lua.neotest-python.adapter")
+
+---@class neotest-python.DockerConfig
+---@field container? string Container name or ID
+---@field image? string Docker image name (alternative to container)
+---@field command? string[] Custom docker command prefix (default: ["docker", "exec"])
+---@field args? string[] Additional docker arguments (e.g., ["-i", "-w", "/app"])
+---@field workdir? string Working directory inside container (default: "/app")
 
 ---@class neotest-python.AdapterConfig
 ---@field dap? table
@@ -8,6 +15,7 @@ local create_adapter = require("neotest-python.adapter")
 ---@field python? string|string[]|fun(root: string):string[]
 ---@field args? string[]|fun(runner: string, position: neotest.Position, strategy: string): string[]
 ---@field runner? string|fun(python_command: string[]): string
+---@field docker? neotest-python.DockerConfig Docker configuration for containerized execution
 
 local is_callable = function(obj)
   return type(obj) == "function" or (type(obj) == "table" and obj.__call)
@@ -31,7 +39,14 @@ local augment_config = function(config)
         return python
       end
 
-      return base.get_python(root)
+      return base.get_python_command(root)
+    end
+  end
+
+  -- Handle Docker configuration
+  if config.docker then
+    get_python_command = function(root)
+      return base.get_docker_python_command(root, config.docker)
     end
   end
 
@@ -64,6 +79,7 @@ local augment_config = function(config)
     get_args = get_args,
     is_test_file = config.is_test_file or base.is_test_file,
     get_python_command = get_python_command,
+    docker = config.docker,
   }
 end
 
