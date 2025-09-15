@@ -98,6 +98,13 @@ end
 
 ---@return string
 function M.get_script_path()
+  -- First check our local neotest-python copy
+  local local_script = vim.fn.stdpath("config") .. "/lua/plugins/neotest-python-local/neotest.py"
+  if vim.fn.filereadable(local_script) == 1 then
+    return local_script
+  end
+
+  -- Fallback to runtime file search
   local paths = vim.api.nvim_get_runtime_file("neotest.py", true)
   for _, path in ipairs(paths) do
     if vim.endswith(path, ("neotest-python%sneotest.py"):format(lib.files.sep)) then
@@ -105,7 +112,9 @@ function M.get_script_path()
     end
   end
 
-  vim.notify("neotest.py not found", vim.log.levels.ERROR)
+  vim.schedule(function()
+    vim.notify("neotest.py not found", vim.log.levels.ERROR)
+  end)
   return ""
 end
 
@@ -192,7 +201,9 @@ function M.get_docker_python_command(root, docker_config)
   local workdir = docker_config.workdir or "/app"
 
   if not container and not image then
-    vim.notify("Docker config must specify either 'container' or 'image'", vim.log.levels.ERROR)
+    vim.schedule(function()
+      vim.notify("Docker config must specify either 'container' or 'image'", vim.log.levels.ERROR)
+    end)
     return M.get_python_command(root)
   end
 
@@ -261,7 +272,9 @@ function M.copy_script_to_container(docker_config)
 
   local success = lib.process.run(copy_cmd) == 0
   if not success then
-    vim.notify("Failed to copy neotest script to container", vim.log.levels.ERROR)
+    vim.schedule(function()
+      vim.notify("Failed to copy neotest script to container", vim.log.levels.ERROR)
+    end)
     return script_path
   end
 
